@@ -1,0 +1,16 @@
+{
+  "enunciate": {
+    "docsDir": "${project.build.directory}/documentation/generated",
+    "configFileRootPath": "src/main/resources/enunciate"
+  },
+  "apis": [
+    {
+      "relativeConfigFileName": "marketplace/enunciate-marketplace-answer-api.xml",
+      "apiName": "Answer"
+    },
+    {
+      "relativeConfigFileName": "marketplace/enunciate-marketplace-bundle-api.xml",
+      "apiName": "Bundle"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+# Compiling the code
+mvn install
+
+# Running plugin
+mvn com.appdirect:appdirect-api-docs-plugin:1.0-SNAPSHOT:touch
