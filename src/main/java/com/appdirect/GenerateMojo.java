@@ -36,7 +36,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 @Slf4j
 @Mojo(name = "generate", defaultPhase = LifecyclePhase.PROCESS_SOURCES, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
-public class MyMojo extends AbstractMojo {
+public class GenerateMojo extends AbstractMojo {
     @Component
     private MavenProject mavenProject;
     @Component
@@ -55,9 +55,13 @@ public class MyMojo extends AbstractMojo {
         log.info(config.toString());
 
         for(API api: config.getApis()) {
+            Boolean separateDefinitions = true;
+            if (api.getApiName().equals("Definitions")) {
+                separateDefinitions =  false;
+            }
             String enunciateFileName = new File(config.getEnunciate().getConfigFileRootPath(), api.getRelativeConfigFileName()).toString();
-            executeEnunciate(config.getEnunciate().getDocsDir(), enunciateFileName);
-            executeSwagger2Markup(enunciateFileName);
+            executeEnunciate(config.getEnunciate().getDocsDir().replace("basedirectory", mavenProject.getBuild().getDirectory()), enunciateFileName);
+            executeSwagger2Markup(enunciateFileName, separateDefinitions);
             executeAsciiDoctor(enunciateFileName, api);
         }
     }
@@ -70,7 +74,8 @@ public class MyMojo extends AbstractMojo {
                 plugin(
                     groupId("com.webcohesion.enunciate"),
                     artifactId("enunciate-maven-plugin"),
-                    version("2.3.0")
+                    version("2.8.0")
+
                 ),
                 goal("assemble"),
                 configuration(
@@ -89,11 +94,12 @@ public class MyMojo extends AbstractMojo {
         }
     }
 
-    private void executeSwagger2Markup(String enunciateFileName) {
+    private void executeSwagger2Markup(String enunciateFileName, boolean separateDefinitions) {
         String name = new File(enunciateFileName).getName().replace(".xml", "");
-        String inputDirectory = String.format("${project.build.directory}/documentation/generated/%s/ui", name);
-        String outputDirectory = String.format("${project.build.directory}/documentation/generated/%s-asciidoc", name);
-        String examplesDirectory = String.format("${project.build.directory}/documentation/generated/%s-generated-snippets", name);
+        String baseDirectory = mavenProject.getBuild().getDirectory();
+        String inputDirectory = String.format("%s/documentation/generated/%s/ui", baseDirectory, name);
+        String outputDirectory = String.format("%s/documentation/generated/%s-asciidoc", baseDirectory, name);
+        String examplesDirectory = String.format("%s/documentation/generated/%s-generated-snippets", baseDirectory, name);
         try {
             executeMojo(
                 plugin(
@@ -105,7 +111,7 @@ public class MyMojo extends AbstractMojo {
                 configuration(
                     element(name("markupLanguage"), "asciidoc"),
                     element(name("swaggerFile"), "swagger.json"),
-                    element(name("separateDefinitions"), "true"),
+                    element(name("separateDefinitions"), String.valueOf(separateDefinitions)),
                     element(name("pathsGroupedBy"), "TAGS"),
                     element(name("inputDirectory"), inputDirectory),
                     element(name("outputDirectory"), outputDirectory),
@@ -123,10 +129,15 @@ public class MyMojo extends AbstractMojo {
     }
 
     private void executeAsciiDoctor(String enunciateFileName, API api) {
+        String sourceName = "index.adoc";
+        if (api.getApiName().equals("Definitions")) {
+            sourceName = "definitions.adoc";
+        }
         String name = new File(enunciateFileName).getName().replace(".xml", "");
-        String outputDirectory = String.format("${project.build.directory}/documentation/html/%s-swagger-asciidoc-html", name);
-        String generated = String.format("${project.build.directory}/documentation/generated/%s-asciidoc", name);
-        String generatedSnippets = String.format("${project.build.directory}/documentation/generated/%s-generated-snippets", name);
+        String baseDirectory = mavenProject.getBuild().getDirectory();
+        String outputDirectory = String.format("%s/documentation/html/%s-swagger-asciidoc-html", baseDirectory, name);
+        String generated = String.format("%s/documentation/generated/%s-asciidoc", baseDirectory, name);
+        String generatedSnippets = String.format("%s/documentation/generated/%s-generated-snippets", baseDirectory, name);
         try {
             executeMojo(
                 plugin(
@@ -146,7 +157,7 @@ public class MyMojo extends AbstractMojo {
                         element("generated-snippets", generatedSnippets),
                         element("api-name", api.getApiName())
                     ),
-                    element(name("sourceDocumentName"), "index.adoc"),
+                    element(name("sourceDocumentName"), sourceName),
                     element(name("outputDirectory"), outputDirectory)
                 ),
                 executionEnvironment(

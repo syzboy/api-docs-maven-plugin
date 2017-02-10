@@ -2,4 +2,4 @@
 mvn install
 
 # Running plugin
-mvn com.appdirect:appdirect-api-docs-plugin:1.0-SNAPSHOT:touch
+Under appdirect-parent, run mvn install -Pgen-api-docs -Dmaven.test.skip=true -DfailIfNoTests=false
